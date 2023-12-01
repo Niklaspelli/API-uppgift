@@ -137,7 +137,7 @@ app.use(express.json());
 app.post("/users", function (req, res) {
   if (!req.body.username) {
     res.status(400).send("username required!");
-    return; // avslutar metoden
+    return;
   }
   let fields = ["username", "password", "name"];
   for (let key in req.body) {
