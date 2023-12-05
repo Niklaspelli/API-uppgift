@@ -22,6 +22,15 @@ const databas = mysql.createConnection({
 
 app.use(express.json());
 
+app.use((request, response, next) => {
+  console.log(
+    `[${new Date().toLocaleString()}] [USER-IP ${request.ip}] ${
+      request.method
+    } ${request.url} `
+  );
+  next();
+});
+
 app.get("/users/:id", function (req, res) {
   let sql = "SELECT * FROM niklasforum WHERE id=" + req.params.id;
   console.log(sql);
@@ -113,6 +122,14 @@ function hash(data) {
 app.post("/users", function (req, res) {
   if (!req.body.username) {
     res.status(400).send("Användarnamn behövs!");
+    return;
+  }
+  if (!req.body.name) {
+    res.status(400).send("Namn behövs!");
+    return;
+  }
+  if (!req.body.password) {
+    res.status(400).send("Lösenord behövs!");
     return;
   }
   let fields = ["username", "password", "name"];
