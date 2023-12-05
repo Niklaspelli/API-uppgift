@@ -22,46 +22,10 @@ const databas = mysql.createConnection({
 
 app.use(express.json());
 
-const ANVANDARE = ["id", "username", "password", "name"];
-
-app.get("/users", function (req, res) {
-  let sql = "SELECT * FROM niklasforum";
-  let condition = createCondition(req.query);
-  console.log(sql + condition);
-
-  databas.query(sql + condition, function (err, result, fields) {
-    res.send(result);
-  });
-});
-
-let createCondition = function (query) {
-  console.log(query);
-  let output = " WHERE ";
-  for (let key in query) {
-    if (ANVANDARE.includes(key)) {
-      output += `${key}="${query[key]}" OR `;
-    }
-  }
-  if (output.length == 7) {
-    return "";
-  } else {
-    return output.substring(0, output.length - 4);
-  }
-};
-
 app.get("/users/:id", function (req, res) {
   let sql = "SELECT * FROM niklasforum WHERE id=" + req.params.id;
   console.log(sql);
 
-  databas.query(sql, function (err, result, fields) {
-    if (result.length > 0) {
-      res.send(result);
-    } else {
-      res.sendStatus(404);
-    }
-  });
-});
-app.get("/users", function (req, res) {
   let authHeader = req.headers["authorization"];
   if (authHeader === undefined) {
     res.sendStatus("400");
@@ -81,15 +45,65 @@ app.get("/users", function (req, res) {
   }
 
   console.log(decoded);
-  console.log(`Hallojsan! ${decoded.username}! Ditt namn är ${decoded.name}.`);
+  console.log(`Hallojsan! ${req.body.username}! Ditt namn är ${decoded.name}.`);
 
+  databas.query(sql, function (err, result, fields) {
+    if (result.length > 0) {
+      res.send(result);
+    } else {
+      res.sendStatus(404);
+    }
+  });
+});
+
+const ANVANDARE = ["id", "username", "password", "name"];
+
+app.get("/users", function (req, res) {
   let sql = "SELECT * FROM niklasforum";
-  console.log(sql);
+  let authHeader = req.headers["authorization"];
+  if (authHeader === undefined) {
+    res.sendStatus("400");
+    return;
+  }
+  let token = authHeader.slice(7);
 
+  console.log(token);
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, "Ekorrensattigranen12%%");
+  } catch (err) {
+    console.log(err);
+    res.status(401).send("Invalid auth token");
+    return;
+  }
+  console.log(sql);
+  console.log(decoded);
+  console.log(
+    `Hallojsan! Användare ${req.body.username}! Ditt riktiga namn är ${decoded.name}.`
+  );
+
+  let condition = createCondition(req.query);
+  console.log(sql + condition);
   databas.query(sql, function (err, result, fields) {
     res.send(result);
   });
 });
+
+let createCondition = function (query) {
+  console.log(query);
+  let output = " WHERE ";
+  for (let key in query) {
+    if (ANVANDARE.includes(key)) {
+      output += `${key}="${query[key]}" OR `;
+    }
+  }
+  if (output.length == 7) {
+    return "";
+  } else {
+    return output.substring(0, output.length - 4);
+  }
+};
 
 function hash(data) {
   const hash = crypto.createHash("sha256");
@@ -153,30 +167,6 @@ app.post("/login", function (req, res) {
     }
   });
 });
-/* 
-app.post("/login", function (req, res) {
-  console.log(req.body);
-  if (!(req.body && req.body.username && req.body.password)) {
-    res.sendStatus(400);
-    return;
-  }
-  let sql = `SELECT * FROM niklasforum WHERE username='${req.body.username}'`;
-
-  databas.query(sql, function (err, result, fields) {
-    if (err) throw err;
-    let passwordHash = hash(req.body.password);
-    if (result[0].password == passwordHash) {
-      let payload = {
-        sub: result[0].username,
-        name: result[0].name,
-      };
-      let token = jwt.sign(payload, "Ekorrensattigranen12%%");
-      res.json(token);
-    } else {
-      res.sendStatus(401);
-    }
-  });
-}); */
 
 app.put("/users/:id", function (req, res) {
   if (!(req.body && req.body.name && req.body.password)) {
@@ -198,24 +188,25 @@ app.put("/users/:id", function (req, res) {
 });
 
 /* app.delete("/users/:id", (req, res) => {
-  const deleteUser = deleteUsers.find(c => c.id === parseInt(req.params.id));
-  if (!deleteUser) res.status(404).send('Användaren hittades ej!');
-  const index = deleteUsers.indexOf(deleteUser);
-  deleteUsers.splice(index, 1);
+  const deleteUser = ANVANDARE.find((c) => c.id === parseInt(req.params.id));
+  if (!deleteUser) res.status(404).send("Användaren hittades ej!");
+  const index = ANVANDARE.indexOf(deleteUser);
+  ANVANDARE.splice(index, 1);
 
   res.send(deleteUser);
-})
- */
+}); */
 
-/*   app.delete("/users/:id", (req,res) => {
-    try{
-      const {id} = req.params;
-      const deleteUser =  User.findByIdAndDelete(id);
-      if(!deleteUser) {
-        return res.status(404).json({message: `Kan inte hitta andvändaren med ID ${id}`})
-      }
-      res.status(200).json(deleteUser);
-    } catch (error) {
-      res.status(500).json({message: error.message})
+/* app.delete("/users/:id", (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleteUser = ANVANDARE.findByIdAndDelete(id);
+    if (!deleteUser) {
+      return res
+        .status(404)
+        .json({ message: `Kan inte hitta andvändaren med ID ${id}` });
     }
-  })  */
+    res.status(200).json(deleteUser);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+}); */
