@@ -2,6 +2,7 @@ const express = require("express");
 const app = express();
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const mysql = require("mysql");
 console.log("Niklas API körs på port 8080");
 
 app.listen(8080);
@@ -11,7 +12,6 @@ app.get("/", function (req, res) {
   res.sendFile(__dirname + "/main.html");
 });
 
-const mysql = require("mysql");
 const databas = mysql.createConnection({
   host: "localhost",
   user: "root",
@@ -21,12 +21,6 @@ const databas = mysql.createConnection({
 });
 
 app.use(express.json());
-
-function hash(data) {
-  const hash = crypto.createHash("sha256");
-  hash.update(data);
-  return hash.digest("hex");
-}
 
 const ANVANDARE = ["id", "username", "password", "name"];
 
@@ -67,7 +61,99 @@ app.get("/users/:id", function (req, res) {
     }
   });
 });
+app.get("/users", function (req, res) {
+  let authHeader = req.headers["authorization"];
+  if (authHeader === undefined) {
+    res.sendStatus("400");
+    return;
+  }
+  let token = authHeader.slice(7);
 
+  console.log(token);
+
+  let decoded;
+  try {
+    decoded = jwt.verify(token, "Ekorrensattigranen12%%");
+  } catch (err) {
+    console.log(err);
+    res.status(401).send("Invalid auth token");
+    return;
+  }
+
+  console.log(decoded);
+  console.log(`Hallojsan! ${decoded.username}! Ditt namn är ${decoded.name}.`);
+
+  let sql = "SELECT * FROM niklasforum";
+  console.log(sql);
+
+  databas.query(sql, function (err, result, fields) {
+    res.send(result);
+  });
+});
+
+function hash(data) {
+  const hash = crypto.createHash("sha256");
+  hash.update(data);
+  return hash.digest("hex");
+}
+app.post("/users", function (req, res) {
+  if (!req.body.username) {
+    res.status(400).send("Användarnamn behövs!");
+    return;
+  }
+  let fields = ["username", "password", "name"];
+  for (let key in req.body) {
+    if (!fields.includes(key)) {
+      res.status(400).send("Okänd information: " + key);
+      return;
+    }
+  }
+
+  let addUser = `INSERT INTO niklasforum (username, password, name)
+      VALUES ('${req.body.username}', 
+      '${hash(req.body.password)}',
+      '${req.body.name}');
+      SELECT LAST_INSERT_ID();`;
+  console.log(addUser);
+
+  databas.query(addUser, function (err, result, fields) {
+    if (err) throw err;
+
+    console.log(result);
+    let output = {
+      id: result[0].insertId,
+      username: req.body.username,
+      name: req.body.name,
+    };
+    res.send(output);
+  });
+});
+
+app.post("/login", function (req, res) {
+  let sql = `SELECT * FROM niklasforum WHERE username='${req.body.username}'`;
+
+  databas.query(sql, function (err, result, fields) {
+    if (err) throw err;
+    if (result.length == 0) {
+      res.status(400).send("Användarnamn finns ej!");
+      return;
+    }
+    let passwordHash = hash(req.body.password);
+    console.log(passwordHash);
+    console.log(result[0].password);
+    if (result[0].password == passwordHash) {
+      let payload = {
+        sub: result[0].username,
+        name: result[0].name,
+      };
+      let token = jwt.sign(payload, "Ekorrensattigranen12%%");
+      res.json(token);
+    } else {
+      res.status(400).send("Fel lösenord!");
+    }
+  });
+});
+/* 
 app.post("/login", function (req, res) {
   console.log(req.body);
   if (!(req.body && req.body.username && req.body.password)) {
@@ -84,89 +170,24 @@ app.post("/login", function (req, res) {
         sub: result[0].username,
         name: result[0].name,
       };
-      let token = jwt.sign(payload, "EnHemlighetSomIngenKanGissaXyz123%&/");
+      let token = jwt.sign(payload, "Ekorrensattigranen12%%");
       res.json(token);
     } else {
       res.sendStatus(401);
     }
   });
-});
-
-app.get("/users", function (req, res) {
-  let authHeader = req.headers["authorization"];
-  if (authHeader === undefined) {
-    res.sendStatus("400");
-    return;
-  }
-  let token = authHeader.slice(7);
-
-  console.log(token);
-
-  let decoded;
-  try {
-    decoded = jwt.verify(token, "EnHemlighetSomIngenKanGissaXyz123%&/");
-  } catch (err) {
-    console.log(err);
-    res.status(401).send("Invalid auth token");
-    return;
-  }
-
-  console.log(decoded);
-  console.log(
-    `Hallojsan! ${decoded.name}! Din mailadress är ${decoded.email}.`
-  );
-
-  let sql = "SELECT * FROM niklasforum";
-  console.log(sql);
-
-  databas.query(sql, function (err, result, fields) {
-    res.send(result);
-  });
-});
-
-app.post("/users", function (req, res) {
-  if (!req.body.username) {
-    res.status(400).send("username required!");
-    return;
-  }
-  let fields = ["username", "password", "name"];
-  for (let key in req.body) {
-    if (!fields.includes(key)) {
-      res.status(400).send("Unknown field: " + key);
-      return;
-    }
-  }
-
-  let sql = `INSERT INTO niklasforum (username, password, name)
-      VALUES ('${req.body.username}', 
-      '${hash(req.body.password)}',
-      '${req.body.name}');
-      SELECT LAST_INSERT_ID();`;
-  console.log(sql);
-
-  databas.query(sql, function (err, result, fields) {
-    if (err) throw err;
-
-    console.log(result);
-    let output = {
-      id: result[0].insertId,
-      username: req.body.username,
-      name: req.body.name,
-    };
-    res.send(output);
-  });
-});
+}); */
 
 app.put("/users/:id", function (req, res) {
   if (!(req.body && req.body.name && req.body.password)) {
     res.sendStatus(400);
     return;
   }
-  let sqlbas = `UPDATE niklasforum 
+  let changeUser = `UPDATE niklasforum 
         SET name = '${req.body.name}',password = '${hash(req.body.password)}'
         WHERE id = ${req.params.id}`;
 
-  databas.query(sqlbas, function (err, result, fields) {
+  databas.query(changeUser, function (err, result, fields) {
     if (err) {
       res.status(400).send("Något gick fel!");
       throw err;
