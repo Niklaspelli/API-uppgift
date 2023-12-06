@@ -89,7 +89,7 @@ app.get("/users", function (req, res) {
   console.log(sql);
   console.log(decoded);
   console.log(
-    `Hallojsan! Användare ${req.body.username}! Ditt riktiga namn är ${decoded.name}.`
+    `Hallojsan användare ${req.body.username}! Ditt riktiga namn är ${decoded.name}.`
   );
 
   let condition = createCondition(req.query);
@@ -204,26 +204,21 @@ app.put("/users/:id", function (req, res) {
   });
 });
 
-/* app.delete("/users/:id", (req, res) => {
-  const deleteUser = ANVANDARE.find((c) => c.id === parseInt(req.params.id));
-  if (!deleteUser) res.status(404).send("Användaren hittades ej!");
-  const index = ANVANDARE.indexOf(deleteUser);
-  ANVANDARE.splice(index, 1);
+app.delete("/deleteuser/:id", function (request, response) {
+  const profileID = request.params.id;
 
-  res.send(deleteUser);
-}); */
-
-/* app.delete("/users/:id", (req, res) => {
-  try {
-    const { id } = req.params;
-    const deleteUser = ANVANDARE.findByIdAndDelete(id);
-    if (!deleteUser) {
-      return res
-        .status(404)
-        .json({ message: `Kan inte hitta andvändaren med ID ${id}` });
-    }
-    res.status(200).json(deleteUser);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
+  if (!profileID) {
+    return response.status(400).send("Något gick fel!");
   }
-}); */
+  const deleteProfile = "DELETE FROM niklasforum WHERE id = ? ";
+  const value = [profileID];
+
+  databas.query(deleteProfile, value, function (err, result, fields) {
+    if (err) {
+      console.error("Error with query", err);
+      response.status(500).send("Server Error");
+    } else {
+      response.send("Användaren är nu raderad ur Niklasforum.");
+    }
+  });
+});
