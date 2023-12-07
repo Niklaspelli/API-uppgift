@@ -11,7 +11,7 @@ app.use(express.urlencoded({ extended: true }));
 app.get("/", function (req, res) {
   res.sendFile(__dirname + "/main.html");
 });
-
+// Här kopplar man databasen, har döpt min till "databas".
 const databas = mysql.createConnection({
   host: "localhost",
   user: "root",
@@ -21,7 +21,7 @@ const databas = mysql.createConnection({
 });
 
 app.use(express.json());
-
+//Här ser man vilken IP som har varit inne!
 app.use((request, response, next) => {
   console.log(
     `[${new Date().toLocaleString()}] [USER-IP ${request.ip}] ${
@@ -119,6 +119,8 @@ function hash(data) {
   hash.update(data);
   return hash.digest("hex");
 }
+
+//Här är kod för att registrera användare, här med felmeddelanden ifall inte allt är ifyllt.
 app.post("/users", function (req, res) {
   if (!req.body.username) {
     res.status(400).send("Användarnamn behövs!");
@@ -159,7 +161,7 @@ app.post("/users", function (req, res) {
     res.send(output);
   });
 });
-
+//Här är kod för att logga in till databasen. Här med hashat lösenord och token.
 app.post("/login", function (req, res) {
   let sql = `SELECT * FROM niklasforum WHERE username='${req.body.username}'`;
 
@@ -184,7 +186,7 @@ app.post("/login", function (req, res) {
     }
   });
 });
-
+//Hör ör kod för att uppdatera/ändra användare. Då kan man endast ändra namn och lösenord.
 app.put("/users/:id", function (req, res) {
   if (!(req.body && req.body.name && req.body.password)) {
     res.sendStatus(400);
@@ -203,7 +205,7 @@ app.put("/users/:id", function (req, res) {
     }
   });
 });
-
+//Här är kod för att radera användare via ID.
 app.delete("/deleteuser/:id", function (request, response) {
   const profileID = request.params.id;
 
