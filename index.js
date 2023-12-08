@@ -30,7 +30,7 @@ app.use((request, response, next) => {
   );
   next();
 });
-
+//Här är kod för att hämta användare via ID
 app.get("/users/:id", function (req, res) {
   let sql = "SELECT * FROM niklasforum WHERE id=" + req.params.id;
   console.log(sql);
@@ -56,7 +56,7 @@ app.get("/users/:id", function (req, res) {
   console.log(decoded);
   console.log(`Hallojsan! ${req.body.username}! Ditt namn är ${decoded.name}.`);
 
-  databas.query(sql, function (err, result, fields) {
+  databas.query(sql, function (err, result) {
     if (result.length > 0) {
       res.send(result);
     } else {
@@ -94,7 +94,7 @@ app.get("/users", function (req, res) {
 
   let condition = createCondition(req.query);
   console.log(sql + condition);
-  databas.query(sql, function (err, result, fields) {
+  databas.query(sql, function (err, result) {
     res.send(result);
   });
 });
@@ -149,7 +149,7 @@ app.post("/users", function (req, res) {
       SELECT LAST_INSERT_ID();`;
   console.log(addUser);
 
-  databas.query(addUser, function (err, result, fields) {
+  databas.query(addUser, function (err, result) {
     if (err) throw err;
 
     console.log(result);
@@ -165,7 +165,7 @@ app.post("/users", function (req, res) {
 app.post("/login", function (req, res) {
   let sql = `SELECT * FROM niklasforum WHERE username='${req.body.username}'`;
 
-  databas.query(sql, function (err, result, fields) {
+  databas.query(sql, function (err, result) {
     if (err) throw err;
     if (result.length == 0) {
       res.status(400).send("Användarnamn finns ej!");
@@ -186,7 +186,7 @@ app.post("/login", function (req, res) {
     }
   });
 });
-//Hör ör kod för att uppdatera/ändra användare. Då kan man endast ändra namn och lösenord.
+//Här är kod för att uppdatera/ändra användare. Då kan man endast ändra namn och lösenord.
 app.put("/users/:id", function (req, res) {
   if (!(req.body && req.body.name && req.body.password)) {
     res.sendStatus(400);
@@ -196,7 +196,7 @@ app.put("/users/:id", function (req, res) {
         SET name = '${req.body.name}',password = '${hash(req.body.password)}'
         WHERE id = ${req.params.id}`;
 
-  databas.query(changeUser, function (err, result, fields) {
+  databas.query(changeUser, function (err) {
     if (err) {
       res.status(400).send("Något gick fel!");
       throw err;
@@ -215,7 +215,7 @@ app.delete("/deleteuser/:id", function (request, response) {
   const deleteProfile = "DELETE FROM niklasforum WHERE id = ? ";
   const value = [profileID];
 
-  databas.query(deleteProfile, value, function (err, result, fields) {
+  databas.query(deleteProfile, value, function (err) {
     if (err) {
       console.error("Error with query", err);
       response.status(500).send("Server Error");
