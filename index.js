@@ -49,7 +49,7 @@ app.get("/users/:id", function (req, res) {
     decoded = jwt.verify(token, "Ekorrensattigranen12%%");
   } catch (err) {
     console.log(err);
-    res.status(401).send("Invalid auth token");
+    res.status(401).send("Ej giltig token");
     return;
   }
 
@@ -83,7 +83,7 @@ app.get("/users", function (req, res) {
     decoded = jwt.verify(token, "Ekorrensattigranen12%%");
   } catch (err) {
     console.log(err);
-    res.status(401).send("Invalid auth token");
+    res.status(401).send("Ej giltig token");
     return;
   }
   console.log(sql);
